@@ -3,6 +3,7 @@ package de.ekut.tbi.repo.fs
 
 
 import java.io.File
+import java.nio.file.Files
 
 import java.time.{
   LocalDate, Instant
@@ -12,7 +13,11 @@ import java.util.UUID
 
 import org.scalatest.AsyncFlatSpec
 
-import scala.concurrent.Future
+import scala.concurrent.{
+  Await,
+  Future
+}
+import scala.concurrent.duration._
 
 import play.api.libs.json.Json
 
@@ -27,22 +32,11 @@ case class Foo
   timestamp: Instant
 )
 
-
-object TestAsync
+object Foo
 {
 
   implicit val formatFoo =
     Json.format[Foo]
-
-  lazy val dataDir =
-    new File("/tmp/repository_tests/Foos")
-
-  lazy val db =
-    AsyncFSBackedInMemRepository[Foo,String](
-      dataDir,
-      "Foo",
-      _.id
-    )
 
 }
 
@@ -51,9 +45,18 @@ object TestAsync
 class TestAsync extends AsyncFlatSpec
 {
 
-  private val n = 42
+  val dataDir = 
+    Files.createTempDirectory("RepositoryTests_").toFile
+//    new File("/tmp/repository_tests/Foos")
 
-  import TestAsync._
+  val db =
+    AsyncFSBackedInMemRepository[Foo,String](
+      dataDir,
+      "Foo",
+      _.id
+    )
+
+  private val n = 42
 
   private def rndFoo: Foo = {
     Foo(
@@ -89,7 +92,7 @@ class TestAsync extends AsyncFlatSpec
   
   }
 
-
+/*
   "Deleting Foos" should "work" in {
 
     for {
@@ -98,8 +101,7 @@ class TestAsync extends AsyncFlatSpec
     } yield assert(foos.size == 0) 
   
   }
-
-
+*/
 
 
 

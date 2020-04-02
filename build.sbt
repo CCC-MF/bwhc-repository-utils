@@ -8,7 +8,7 @@ name := "repository-utils"
 organization in ThisBuild := "de.ekut.tbi"
 //scalaVersion in ThisBuild := "2.13.0"
 scalaVersion in ThisBuild := "2.12.8"
-version in ThisBuild:= "1.0"
+version in ThisBuild:= "1.0-SNAPSHOT"
 
 
 //-----------------------------------------------------------------------------

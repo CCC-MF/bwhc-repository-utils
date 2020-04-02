@@ -2,7 +2,7 @@ package de.ekut.tbi.repo.fs
 
 
 
-import de.ekut.tbi.repo.Repository
+import de.ekut.tbi.repo.AsyncRepository
 
 
 import java.util.UUID.randomUUID
@@ -14,7 +14,10 @@ import java.io.{
   FileInputStream
 }
 
-import scala.concurrent.Future
+import scala.concurrent.{
+  ExecutionContext,
+  Future
+}
 import scala.util.Success
 import scala.collection.concurrent.{
   Map, TrieMap
@@ -27,7 +30,7 @@ import play.api.libs.json.{
 
 
 sealed trait AsyncFSBackedInMemRepository[T,Id]
-  extends Repository[Future,T,Id]
+  extends AsyncRepository[T,Id]
 
 
 object AsyncFSBackedInMemRepository
@@ -41,12 +44,10 @@ object AsyncFSBackedInMemRepository
     idOf: T => Id,
     cache: Map[Id,T]
   )(
-    implicit f: Format[T]
+    implicit
+    f: Format[T]
   ) extends AsyncFSBackedInMemRepository[T,Id]
   {
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-
 
     private def fileOf(
       id: Id
@@ -59,6 +60,8 @@ object AsyncFSBackedInMemRepository
     
     def save(
       t: T
+    )(
+      implicit ec: ExecutionContext
     ): Future[T] = {
 
       val id = idOf(t)
@@ -81,6 +84,8 @@ object AsyncFSBackedInMemRepository
     def update(
       id: Id,
       up: T => T
+    )(
+      implicit ec: ExecutionContext
     ): Future[Option[T]] = {
       for {
         opt <- get(id)
@@ -94,6 +99,8 @@ object AsyncFSBackedInMemRepository
       p: T => Boolean
     )(
       up: T => T
+    )(
+      implicit ec: ExecutionContext
     ): Future[Iterable[T]] = {           
       for {
         ts <- this.query(p)
@@ -105,18 +112,24 @@ object AsyncFSBackedInMemRepository
 
     def get(
       id: Id
+    )(
+      implicit ec: ExecutionContext
     ): Future[Option[T]] =
       Future.successful(cache.get(id))
 
 
     def query(
       pred: T => Boolean
+    )(
+      implicit ec: ExecutionContext
     ): Future[Iterable[T]] =
       Future.successful(cache.values.filter(pred))
 
 
     def delete(
       id: Id
+    )(
+      implicit ec: ExecutionContext
     ): Future[Option[T]] = { 
       Future {
         fileOf(id).delete
@@ -133,6 +146,8 @@ object AsyncFSBackedInMemRepository
 
     def deleteFor(
       p: T => Boolean
+    )(
+      implicit ec: ExecutionContext
     ): Future[Iterable[T]] = {
       for {
         ts <- this.query(p)
@@ -149,57 +164,12 @@ object AsyncFSBackedInMemRepository
 
 
 /*
+//TODO
 
   // Ensure only one Repository instance is created for a given data dir
   private val repositories: Map[String,AsyncFSBackedInMemRepository] =
     TrieMap.empty[String,AsyncFSBackedInMemRepository]
 
-
-  def apply[T,Id](
-    dataDir: File,
-    prefix: String,
-    idOf: T => Id
-  )(
-    implicit f: Format[T]
-  ): AsyncFSBackedInMemRepository[T,Id] =
-  {
-
-    val path = dataDir.getAbsolutePath
-
-    repositories.get(path) match {
-
-      case Some(repo) => repo
-
-      case None    => {
-
-        if (!dataDir.exists) dataDir.mkdirs
-        
-        val initData = 
-          dataDir.list
-            .toStream
-            .filter(f => f.startsWith(prefix) && f.endsWith(".json"))
-            .map(new File(dataDir,_))
-            .map(toFileInputStream)
-            .map(Json.parse)
-            .map(Json.fromJson[T](_))
-            .filter(_.isSuccess)
-            .map(_.get)
-            .map(t => (idOf(t),t))
-        
-        val repo = AsyncFSBackedInMemRepositoryImpl[T,Id](
-          dataDir,
-          prefix,
-          idOf,
-          TrieMap[Id,T](initData: _*)
-        )
-
-        repositories += (path,repo)
-
-        repo  
-      }
-    }
-
-  }
 */
 
 
@@ -208,7 +178,8 @@ object AsyncFSBackedInMemRepository
     prefix: String,
     idOf: T => Id
   )(
-    implicit f: Format[T]
+    implicit
+    f: Format[T]
   ): AsyncFSBackedInMemRepository[T,Id] = {
 
     if (!dataDir.exists) dataDir.mkdirs
@@ -221,7 +192,7 @@ object AsyncFSBackedInMemRepository
         .map(toFileInputStream)
         .map(Json.parse)
         .map(Json.fromJson[T](_))
-        .filter(_.isSuccess)
+      .filter(_.isSuccess)  // TODO: consider removing?
         .map(_.get)
         .map(t => (idOf(t),t))
 

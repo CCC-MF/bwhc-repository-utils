@@ -3,7 +3,6 @@ package de.ekut.tbi.repo
 
 
 
-
 trait Repository[F[_],T,Id]
 {
 
