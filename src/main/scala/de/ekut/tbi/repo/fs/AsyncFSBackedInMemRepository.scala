@@ -11,14 +11,19 @@ import java.io.{
   File,
   FileWriter,
   InputStream,
+  IOException,
   FileInputStream
 }
+import java.nio.file.Files
 
+import scala.util.{
+  Failure,
+  Success
+}
 import scala.concurrent.{
   ExecutionContext,
   Future
 }
-import scala.util.Success
 import scala.collection.concurrent.{
   Map, TrieMap
 }
@@ -89,13 +94,13 @@ object AsyncFSBackedInMemRepository
     ): Future[Option[T]] = {
       for {
         opt <- get(id)
-        _   = opt.map(up)
-                 .foreach(save)
+        _   =  opt.map(up)
+                  .foreach(save)
       } yield opt
     }
 
 
-    def updateFor(
+    def updateWhere(
       p: T => Boolean
     )(
       up: T => T
@@ -115,7 +120,7 @@ object AsyncFSBackedInMemRepository
     )(
       implicit ec: ExecutionContext
     ): Future[Option[T]] =
-      Future.successful(cache.get(id))
+      Future { cache.get(id) }
 
 
     def query(
@@ -123,7 +128,7 @@ object AsyncFSBackedInMemRepository
     )(
       implicit ec: ExecutionContext
     ): Future[Iterable[T]] =
-      Future.successful(cache.values.filter(pred))
+      Future { cache.values.filter(pred) }
 
 
     def delete(
@@ -131,29 +136,40 @@ object AsyncFSBackedInMemRepository
     )(
       implicit ec: ExecutionContext
     ): Future[Option[T]] = { 
-      Future {
-        fileOf(id).delete
-      }
-      .filter(_ == true)
-      .map(
-        _ => cache.get(id)
+
+      val entry = cache.get(id)
+
+      entry.fold(
+        Future.successful[Option[T]](None)
+      )(
+        v =>
+          Future {
+            Files.delete(fileOf(id).toPath)
+            cache -= id
+            entry
+          }
+          .andThen {
+            case Failure(t) => t.printStackTrace
+          }
+          .recoverWith {
+            case t: IOException => save(v).map(Some(_))
+          }
       )
-      .andThen {
-        case Success(_) => cache.remove(id)
-      }
+
     }
 
 
-    def deleteFor(
+    def deleteWhere(
       p: T => Boolean
     )(
       implicit ec: ExecutionContext
     ): Future[Iterable[T]] = {
+
       for {
         ts <- this.query(p)
-        _  = ts.map(idOf)
-               .foreach(delete(_))
+        _  = ts.map(idOf(_)).foreach(delete)
       } yield ts
+
     }
 
   }

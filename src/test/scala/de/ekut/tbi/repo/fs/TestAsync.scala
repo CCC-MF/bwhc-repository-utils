@@ -45,9 +45,10 @@ object Foo
 class TestAsync extends AsyncFlatSpec
 {
 
+  val rnd = new scala.util.Random
+
   val dataDir = 
     Files.createTempDirectory("RepositoryTests_").toFile
-//    new File("/tmp/repository_tests/Foos")
 
   val db =
     AsyncFSBackedInMemRepository[Foo,String](
@@ -61,8 +62,8 @@ class TestAsync extends AsyncFlatSpec
   private def rndFoo: Foo = {
     Foo(
       UUID.randomUUID.toString,
-      42,
-      3.1415,
+      rnd.nextInt(100),
+      rnd.nextDouble,
       LocalDate.now,
       Instant.now
     )   
@@ -73,36 +74,47 @@ class TestAsync extends AsyncFlatSpec
 
     val foos = List.fill(n)(rndFoo)
 
-    Future.sequence(
-      foos.map(db.save)
-    )
-    .map(
-      r => assert(r.size == n)
-    )
+    for {
+      saved <- Future.sequence(foos.map(db.save))
+    } yield assert(saved.size == n)
 
   }
 
 
   "Retrieving Foos" should "work" in {
 
-    db.query(_ => true)
-      .map(
-        r => assert(r.size == n)
-      )
-  
+    for {
+      allFoos <- db.query(_ => true)
+    } yield assert(allFoos.size == n)
+      
   }
 
-/*
-  "Deleting Foos" should "work" in {
+  "Deleting a single Foo by ID" should "work" in {
 
     for {
-      _    <- db.deleteFor(_ => true)
-      foos <- db.query(_ => true)
-    } yield assert(foos.size == 0) 
+      foos    <- db.query(_ => true)
+      foo     =  foos.head
+      id      =  foo.id
+      taken   <- db.delete(id)
+      removed =  assert(taken.isDefined)
+      test    <- db.get(id)
+      deleted =  assert(!test.isDefined)
+    } yield deleted
+
+  }
+
+
+  "Deleting all Foos" should "work" in {
+
+    for {
+      taken        <- db.deleteWhere(_ => true)
+      removed      = assert(!taken.isEmpty)
+      dataDirEmpty = assert(dataDir.list.isEmpty)
+      remaining    <- db.query(_ => true)
+      deleted      = assert(remaining.isEmpty)
+    } yield deleted
   
   }
-*/
-
 
 
 }

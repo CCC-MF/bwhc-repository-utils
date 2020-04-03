@@ -31,7 +31,7 @@ trait AsyncRepository[T,Id]
     implicit ec: ExecutionContext 
   ): Future[Option[T]]
 
-  def updateFor(
+  def updateWhere(
     p: T => Boolean
   )(
     up: T => T
@@ -53,7 +53,7 @@ trait AsyncRepository[T,Id]
     implicit ec: ExecutionContext 
   ): Future[Option[T]]
 
-  def deleteFor(
+  def deleteWhere(
     p: T => Boolean
   )(
     implicit ec: ExecutionContext 

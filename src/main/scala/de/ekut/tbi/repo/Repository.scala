@@ -21,7 +21,7 @@ trait Repository[F[_],T,Id]
     up: T => T
   ): F[Option[T]]
 
-  def updateFor(
+  def updateWhere(
     p: T => Boolean
   )(
     up: T => T
@@ -37,7 +37,7 @@ trait Repository[F[_],T,Id]
     id: Id
   ): F[Option[T]]
 
-  def deleteFor(
+  def deleteWhere(
     p: T => Boolean
   ): F[Iterable[T]]
 
