@@ -12,6 +12,7 @@ import java.time.{
 import java.util.UUID
 
 import org.scalatest.AsyncFlatSpec
+import org.scalatest.MustMatchers._
 
 import scala.concurrent.{
   Await,
@@ -76,7 +77,7 @@ class TestAsync extends AsyncFlatSpec
 
     for {
       saved <- Future.sequence(foos.map(db.save))
-    } yield assert(saved.size == n)
+    } yield (saved.size mustBe n)
 
   }
 
@@ -85,20 +86,20 @@ class TestAsync extends AsyncFlatSpec
 
     for {
       allFoos <- db.query(_ => true)
-    } yield assert(allFoos.size == n)
+    } yield (allFoos.size mustBe n)
       
   }
 
   "Deleting a single Foo by ID" should "work" in {
 
     for {
-      foos    <- db.query(_ => true)
-      foo     =  foos.head
-      id      =  foo.id
-      taken   <- db.delete(id)
-      removed =  assert(taken.isDefined)
-      test    <- db.get(id)
-      deleted =  assert(!test.isDefined)
+      foos       <- db.query(_ => true)
+      foo        =  foos.head
+      id         =  foo.id
+      taken      <- db.delete(id)
+      removed    =  taken mustBe defined
+      getDeleted <- db.get(id)
+      deleted    =  getDeleted mustBe empty
     } yield deleted
 
   }
@@ -108,10 +109,10 @@ class TestAsync extends AsyncFlatSpec
 
     for {
       taken        <- db.deleteWhere(_ => true)
-      removed      = assert(!taken.isEmpty)
-      dataDirEmpty = assert(dataDir.list.isEmpty)
+      removed      = taken must not be empty
+      dataDirEmpty = dataDir.list mustBe empty
       remaining    <- db.query(_ => true)
-      deleted      = assert(remaining.isEmpty)
+      deleted      = remaining mustBe empty
     } yield deleted
   
   }
