@@ -33,6 +33,8 @@ import play.api.libs.json.{
   Format
 }
 
+import cats.data.OptionT
+
 
 sealed trait AsyncFSBackedInMemRepository[T,Id]
   extends AsyncRepository[T,Id]
@@ -47,6 +49,7 @@ object AsyncFSBackedInMemRepository
     dataDir: File,
     prefix: String,
     idOf: T => Id,
+    id2str: Id => String,
     cache: Map[Id,T]
   )(
     implicit
@@ -59,7 +62,7 @@ object AsyncFSBackedInMemRepository
     ): File =
       new File(
         dataDir,
-        prefix + "_" + id.toString + ".json"
+        s"${prefix}_${id2str(id)}.json"
       )
 
     
@@ -71,18 +74,17 @@ object AsyncFSBackedInMemRepository
 
       val id = idOf(t)
 
-      Future { Json.prettyPrint(Json.toJson(t)) }
-        .filter(!_.isEmpty)
-        .map {
-           js =>
-             val fw = new FileWriter(fileOf(id))
-             fw.write(js)
-             fw.close
-             t
-           }
-        .andThen {
-          case Success(_) => cache.update(id,t)
-        }
+      for {
+        js <- Future { Json.prettyPrint(Json.toJson(t)) }
+//        if !js.isEmpty
+        written <- Future {
+                    val fw = new FileWriter(fileOf(id))
+                    fw.write(js)
+                    fw.close
+                  }
+        cached  <- Future { cache.update(id,t) }
+      } yield t
+
     }
 
 
@@ -94,11 +96,10 @@ object AsyncFSBackedInMemRepository
     ): Future[Option[T]] = {
       for {
         opt <- get(id)
-        _   =  opt.map(up)
-                  .foreach(save)
-      } yield opt
+        updated = opt.map(up)
+        result <- updated.map(save(_).map(Some(_))).getOrElse(Future.successful(None))
+      } yield result
     }
-
 
     def updateWhere(
       p: T => Boolean
@@ -106,12 +107,12 @@ object AsyncFSBackedInMemRepository
       up: T => T
     )(
       implicit ec: ExecutionContext
-    ): Future[Iterable[T]] = {           
+    ): Future[Iterable[T]] = {
       for {
         ts <- this.query(p)
-        _  =  ts.map(up)
-                .foreach(save)
-      } yield ts
+        txn = ts.map(up).map(save)
+        updated <- Future.sequence(txn)
+      } yield updated
     }
     
 
@@ -192,7 +193,8 @@ object AsyncFSBackedInMemRepository
   def apply[T,Id](
     dataDir: File,
     prefix: String,
-    idOf: T => Id
+    idOf: T => Id,
+    id2str: Id => String
   )(
     implicit
     f: Format[T]
@@ -202,13 +204,13 @@ object AsyncFSBackedInMemRepository
 
     val initData = 
       dataDir.list
-        .toStream
+        .to(LazyList)
         .filter(f => f.startsWith(prefix) && f.endsWith(".json"))
         .map(new File(dataDir,_))
         .map(toFileInputStream)
         .map(Json.parse)
         .map(Json.fromJson[T](_))
-      .filter(_.isSuccess)  // TODO: consider removing?
+//      .filter(_.isSuccess)  // TODO: consider removing?
         .map(_.get)
         .map(t => (idOf(t),t))
 
@@ -216,6 +218,7 @@ object AsyncFSBackedInMemRepository
       dataDir,
       prefix,
       idOf,
+      id2str,
       TrieMap[Id,T](initData: _*)
     )
 

@@ -6,9 +6,17 @@
 
 name := "repository-utils"
 organization in ThisBuild := "de.ekut.tbi"
-//scalaVersion in ThisBuild := "2.13.0"
-scalaVersion in ThisBuild := "2.12.8"
 version in ThisBuild:= "1.0-SNAPSHOT"
+
+lazy val scala212 = "2.12.10"
+lazy val scala213 = "2.13.1"
+lazy val supportedScalaVersions =
+  List(
+//    scala212,
+    scala213
+  )
+
+scalaVersion in ThisBuild := scala213
 
 
 //-----------------------------------------------------------------------------
@@ -19,48 +27,28 @@ lazy val global = project
   .in(file("."))
   .settings(
     settings,
-    libraryDependencies ++= commonDependencies ++ Seq(
-      dependencies.play_json
-    )
+    libraryDependencies ++= Seq(
+      "org.typelevel"     %% "cats-core" % "2.1.1",
+      "com.typesafe.play" %% "play-json" % "2.8.0",
+      "org.scalatest"     %% "scalatest" % "3.1.1" % "test"
+    ),
+    crossScalaVersions := supportedScalaVersions
   )
-
-
-
-//-----------------------------------------------------------------------------
-// DEPENDENCIES
-//-----------------------------------------------------------------------------
-
-lazy val dependencies =
-  new {
-    val scalatest  = "org.scalatest"     %% "scalatest"        % "3.0.8"
-//    val slf4j      = "org.slf4j"         %  "slf4j-api"        % "1.7.26"
-//    val logback    = "ch.qos.logback"    %  "logback-classic"  % "1.0.13"
-    val play_json  = "com.typesafe.play" %% "play-json"        % "2.8.0"
-  }
-
-lazy val commonDependencies = Seq(
-//  dependencies.slf4j,
-  dependencies.scalatest % "test"
-)
 
 
 //-----------------------------------------------------------------------------
 // SETTINGS
 //-----------------------------------------------------------------------------
 
-lazy val settings = commonSettings
-
-
 lazy val compilerOptions = Seq(
   "-unchecked",
-//  "-feature",
+  "-feature",
 //  "-language:existentials",
-//  "-language:higherKinds",
+  "-language:higherKinds",
 //  "-language:implicitConversions",
 //  "-language:postfixOps",
   "-deprecation",
-  "-encoding",
-  "utf8"
+  "-encoding", "utf8"
 )
 
 lazy val commonSettings = Seq(
@@ -72,3 +60,4 @@ lazy val commonSettings = Seq(
   )
 )
 
+lazy val settings = commonSettings
