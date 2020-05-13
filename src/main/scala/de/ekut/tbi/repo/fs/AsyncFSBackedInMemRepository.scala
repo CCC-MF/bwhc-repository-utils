@@ -34,7 +34,7 @@ import play.api.libs.json.{
 }
 
 import cats.data.OptionT
-
+import org.slf4j.{Logger,LoggerFactory}
 
 sealed trait AsyncFSBackedInMemRepository[T,Id]
   extends AsyncRepository[T,Id]
@@ -43,6 +43,7 @@ sealed trait AsyncFSBackedInMemRepository[T,Id]
 object AsyncFSBackedInMemRepository
 {
 
+  private val log = LoggerFactory.getLogger(getClass)
 
   private case class AsyncFSBackedInMemRepositoryImpl[T,Id]
   (
@@ -210,7 +211,7 @@ object AsyncFSBackedInMemRepository
         .map(toFileInputStream)
         .map(Json.parse)
         .map(Json.fromJson[T](_))
-//      .filter(_.isSuccess)  // TODO: consider removing?
+        .tapEach(_.fold(err => log.error(err.toString),t => ()))
         .map(_.get)
         .map(t => (idOf(t),t))
 
