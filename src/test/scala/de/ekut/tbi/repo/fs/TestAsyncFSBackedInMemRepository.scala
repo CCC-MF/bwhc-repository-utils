@@ -15,40 +15,17 @@ import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.OptionValues._
 
-import scala.concurrent.{
-  Await,
-  Future
-}
-import scala.concurrent.duration._
+import scala.concurrent.Future
+import scala.util.Success
 
 import play.api.libs.json.Json
 
 
-
-case class Foo
-(
-  id: String,
-  int: Int,
-  double: Double,
-  date: LocalDate,
-  timestamp: Instant
-)
-
-object Foo
+class TestAsyncFSBackedInMemRepository extends AsyncFlatSpec
 {
-  implicit val formatFoo =
-    Json.format[Foo]
-}
-
-
-
-class TestAsync extends AsyncFlatSpec
-{
-
-  val rnd = new scala.util.Random
 
   val dataDir = 
-    Files.createTempDirectory("RepositoryTests_").toFile
+    Files.createTempDirectory("AsyncFSBackedInMemRepositoryTests_").toFile
 
   val db =
     AsyncFSBackedInMemRepository[Foo,String](
@@ -60,20 +37,10 @@ class TestAsync extends AsyncFlatSpec
 
   private val n = 42
 
-  private def rndFoo: Foo = {
-    Foo(
-      UUID.randomUUID.toString,
-      rnd.nextInt(100),
-      rnd.nextDouble,
-      LocalDate.now,
-      Instant.now
-    )   
-  }
-
 
   "Saving Foos" should "work" in {
 
-    val foos = List.fill(n)(rndFoo)
+    val foos = List.fill(n)(Foo.rndInstance)
 
     for {
       saved <- Future.sequence(foos.map(db.save))
@@ -134,7 +101,7 @@ class TestAsync extends AsyncFlatSpec
 
 
   "Deleting all Foos" should "work" in {
-
+   ( 
     for {
       taken        <- db.deleteWhere(_ => true)
       removed      =  taken must not be empty
@@ -142,6 +109,10 @@ class TestAsync extends AsyncFlatSpec
       remaining    <- db.query(_ => true)
       deleted      =  remaining mustBe empty
     } yield deleted
+   )
+   .andThen {
+     case Success(_) => dataDir.delete
+   }
   
   }
 
