@@ -30,7 +30,7 @@ case class Foo
 )
 
 
-class TestAsync extends AsyncFlatSpec
+class TestAsyncInMemRepository extends AsyncFlatSpec
 {
 
   val rnd = new scala.util.Random
