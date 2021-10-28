@@ -27,6 +27,9 @@ class TestAsyncFSBackedRepository extends AsyncFlatSpec
   val dataDir = 
     Files.createTempDirectory("AsyncFSBackedRepositoryTests_").toFile
 
+  dataDir.deleteOnExit
+
+
   val db =
     AsyncFSBackedRepository[Foo,String](
       dataDir,
@@ -102,7 +105,6 @@ class TestAsyncFSBackedRepository extends AsyncFlatSpec
 
   "Deleting all Foos" should "work" in {
 
-   (
     for {
       taken        <- db.deleteWhere(_ => true)
       removed      =  taken must not be empty
@@ -110,20 +112,7 @@ class TestAsyncFSBackedRepository extends AsyncFlatSpec
       remaining    <- db.query(_ => true)
       deleted      =  remaining mustBe empty
     } yield deleted
-   )
-   .andThen {
-     case Success(_) => dataDir.delete
-   }
 
-/*  
-    for {
-      taken        <- db.deleteWhere(_ => true)
-      removed      =  taken must not be empty
-      dataDirEmpty =  dataDir.list mustBe empty
-      remaining    <- db.query(_ => true)
-      deleted      =  remaining mustBe empty
-    } yield deleted
-*/  
   }
 
 }

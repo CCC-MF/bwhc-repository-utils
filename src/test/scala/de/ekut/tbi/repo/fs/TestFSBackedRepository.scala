@@ -12,30 +12,42 @@ import java.time.{
 import java.util.UUID
 
 import org.scalatest.flatspec.AsyncFlatSpec
+//import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.OptionValues._
 
 import scala.concurrent.Future
+import scala.util.Try
 import scala.util.Success
 
 import play.api.libs.json.Json
 
+import cats.{Traverse,Id}
 import cats.instances.future._
+//import cats.instances.try_._
+import cats.instances.list._
+import cats.syntax.traverse._
 
 
 
 class TestFSBackedRepository extends AsyncFlatSpec
+//class TestFSBackedRepository extends AnyFlatSpec
 {
 
   val dataDir = 
     Files.createTempDirectory("FSBackedRepositoryTests_").toFile
 
+  dataDir.deleteOnExit
+
+
   val db =
+//    FSBackedRepository[Id,Foo,String](
+//    FSBackedRepository[Try,Foo,String](
     FSBackedRepository[Future,Foo,String](
       dataDir,
       "Foo",
       _.id,
-      s => s
+      identity
     )
 
   private val n = 42
@@ -46,7 +58,7 @@ class TestFSBackedRepository extends AsyncFlatSpec
     val foos = List.fill(n)(Foo.rndInstance)
 
     for {
-      saved <- Future.sequence(foos.map(db.save))
+      saved <- foos.map(db.save).sequence
     } yield (saved.size mustBe n)
 
   }
@@ -105,7 +117,6 @@ class TestFSBackedRepository extends AsyncFlatSpec
 
   "Deleting all Foos" should "work" in {
 
-   (
     for {
       taken        <- db.deleteWhere(_ => true)
       removed      =  taken must not be empty
@@ -113,10 +124,6 @@ class TestFSBackedRepository extends AsyncFlatSpec
       remaining    <- db.query(_ => true)
       deleted      =  remaining mustBe empty
     } yield deleted
-   )
-   .andThen {
-     case Success(_) => dataDir.delete
-   }
 
   }
 

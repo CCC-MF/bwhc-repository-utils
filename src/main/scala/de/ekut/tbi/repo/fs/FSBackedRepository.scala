@@ -31,7 +31,8 @@ import play.api.libs.json.{
 
 import org.slf4j.{Logger,LoggerFactory}
 
-import cats.{Monad,Traverse}
+import cats.Monad
+import cats.MonadError
 import cats.syntax.functor._
 import cats.syntax.flatMap._
 
@@ -53,6 +54,7 @@ object FSBackedRepository
     id2str: Id => String
   )(
     implicit
+//    F: MonadError[F,Throwable],
     F: Monad[F],
     f: Format[T],
   ) extends FSBackedRepository[F,T,Id]
@@ -205,6 +207,7 @@ object FSBackedRepository
   )(
     implicit
     monad: Monad[F],
+//    monad: MonadError[F,Throwable],
     f: Format[T]
   ): FSBackedRepository[F,T,Id] = {
 
