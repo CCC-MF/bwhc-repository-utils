@@ -55,7 +55,7 @@ object FSBackedRepository
   )(
     implicit
 //    F: MonadError[F,Throwable],
-    F: Monad[F],
+//    F: Monad[F],
     f: Format[T],
   ) extends FSBackedRepository[F,T,Id]
   {
@@ -71,13 +71,15 @@ object FSBackedRepository
     
     def save(
       t: T
+    )(
+      implicit F: Monad[F]
     ): F[T] = {
        
       for {
         js <- F.pure { Json.prettyPrint(Json.toJson(t)) }
         written = {
                     val fw = new FileWriter(fileOf(idOf(t)))
-                    fw.write(js)
+                    fw.write(js.toString)
                     fw.close
                   }
       } yield t
@@ -88,6 +90,8 @@ object FSBackedRepository
     def update(
       id: Id,
       f: T => T
+    )(
+      implicit F: Monad[F]
     ): F[Option[T]] = {
 
       for {
@@ -102,6 +106,8 @@ object FSBackedRepository
       p: T => Boolean
     )(
       f: T => T
+    )(
+      implicit F: Monad[F]
     ): F[Iterable[T]] = {
 
       import cats.instances.list._
@@ -118,6 +124,8 @@ object FSBackedRepository
 
     def get(
       id: Id
+    )(
+      implicit F: Monad[F]
     ): F[Option[T]] =
       F.pure {
         for {
@@ -138,6 +146,8 @@ object FSBackedRepository
 
     def query(
       pred: T => Boolean
+    )(
+      implicit F: Monad[F]
     ): F[Iterable[T]] =
       F.pure {
         dataDir.list
@@ -153,6 +163,8 @@ object FSBackedRepository
 
     def delete(
       id: Id
+    )(
+      implicit F: Monad[F]
     ): F[Option[T]] = { 
 
       F.pure {
@@ -173,6 +185,8 @@ object FSBackedRepository
 
     def deleteWhere(
       p: T => Boolean
+    )(
+      implicit F: Monad[F]
     ): F[Iterable[T]] = {
 
       for {
@@ -206,7 +220,7 @@ object FSBackedRepository
     id2str: Id => String
   )(
     implicit
-    monad: Monad[F],
+//    monad: Monad[F],
 //    monad: MonadError[F,Throwable],
     f: Format[T]
   ): FSBackedRepository[F,T,Id] = {

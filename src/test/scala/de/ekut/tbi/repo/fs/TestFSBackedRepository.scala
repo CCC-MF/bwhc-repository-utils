@@ -12,7 +12,6 @@ import java.time.{
 import java.util.UUID
 
 import org.scalatest.flatspec.AsyncFlatSpec
-//import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.OptionValues._
 
@@ -24,14 +23,12 @@ import play.api.libs.json.Json
 
 import cats.{Traverse,Id}
 import cats.instances.future._
-//import cats.instances.try_._
 import cats.instances.list._
 import cats.syntax.traverse._
 
 
 
 class TestFSBackedRepository extends AsyncFlatSpec
-//class TestFSBackedRepository extends AnyFlatSpec
 {
 
   val dataDir = 
@@ -42,7 +39,6 @@ class TestFSBackedRepository extends AsyncFlatSpec
 
   val db =
 //    FSBackedRepository[Id,Foo,String](
-//    FSBackedRepository[Try,Foo,String](
     FSBackedRepository[Future,Foo,String](
       dataDir,
       "Foo",
