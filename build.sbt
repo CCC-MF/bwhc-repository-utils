@@ -5,8 +5,8 @@
 
 
 name := "repository-utils"
-organization in ThisBuild := "de.ekut.tbi"
-version in ThisBuild:= "1.0-SNAPSHOT"
+ThisBuild / organization := "de.ekut.tbi"
+ThisBuild / version := "1.0-SNAPSHOT"
 
 lazy val scala212 = "2.12.10"
 lazy val scala213 = "2.13.8"
@@ -16,7 +16,7 @@ lazy val supportedScalaVersions =
     scala213
   )
 
-scalaVersion in ThisBuild := scala213
+ThisBuild / scalaVersion := scala213
 
 
 //-----------------------------------------------------------------------------
@@ -55,11 +55,9 @@ lazy val compilerOptions = Seq(
 
 lazy val commonSettings = Seq(
   scalacOptions ++= compilerOptions,
-  resolvers ++= Seq(
-    "Local Maven Repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository",
-    Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots")
-  )
+  resolvers ++= Seq("Local Maven Repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository") ++
+    Resolver.sonatypeOssRepos("releases") ++
+    Resolver.sonatypeOssRepos("snapshots")
 )
 
 lazy val settings = commonSettings

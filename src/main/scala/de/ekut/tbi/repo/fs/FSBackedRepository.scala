@@ -117,7 +117,7 @@ object FSBackedRepository
         ts <- this.query(p)
         txn = ts.map(f).map(save).toList
         updated <- txn.sequence
-      } yield updated.toIterable
+      } yield updated
 
     }
     
